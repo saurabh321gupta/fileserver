@@ -1,13 +1,11 @@
 package fileserver.dtos;
 
 import lombok.AllArgsConstructor;
-import lombok.Setter;
+import lombok.Getter;
 
 @AllArgsConstructor
-@Setter
+@Getter
 public class UploadFileResponse {
     private int id;
-    private String description;
-    private String type;
-    private long size;
+    private String url;
 }

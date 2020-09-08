@@ -1,33 +1,104 @@
-plugins {
-	id 'org.springframework.boot' version '2.3.2.RELEASE'
-	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
-	id 'java'
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.3.1.RELEASE")
+        classpath "com.commercehub:gradle-cucumber-jvm-plugin:0.14"
+    }
 }
 
+apply plugin: "io.spring.dependency-management"
+apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'jacoco'
+apply plugin: "com.commercehub.cucumber-jvm"
+
+addCucumberSuite 'cucumberTest'
+
+cucumber {
+    maxParallelForks = 3
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+    cucumberTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/cucumberTest/java')
+        }
+        resources.srcDir file('src/cucumberTest/resources')
+    }
+}
+
+configurations {
+    cucumberTestCompile.extendsFrom testCompile
+    cucumberTestRuntime.extendsFrom testRuntime
+}
+
+cucumberTest {
+    stepDefinitionRoots = ['cucumber.steps', 'cucumber.hooks']
+}
 group = 'fileserver'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	compile("org.springframework.boot:spring-boot-starter-web")
-	compile("org.springframework.boot:spring-boot-starter-data-jpa")
-	runtimeOnly("com.h2database:h2")
-	testImplementation('org.springframework.boot:spring-boot-starter-test') {
-		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-	}
-	compile group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.11.465'
-	testImplementation("junit:junit")
-	compileOnly("org.projectlombok:lombok")
-	annotationProcessor("org.projectlombok:lombok")
-	// https://mvnrepository.com/artifact/mysql/mysql-connector-java
-	compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.15'
-
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework.boot:spring-boot-starter-data-jpa")
+    runtimeOnly("com.h2database:h2")
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.11.465'
+    testImplementation("junit:junit")
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.15'
+    compile group: 'io.cucumber', name: 'cucumber-java', version: '6.5.1'
+    testCompile 'io.cucumber:cucumber-junit:6.5.1'
+    compile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '2.41.0'
 }
 
 test {
-	useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+
+    dependsOn test
+
+    reports {
+        xml.enabled true
+        html.enabled = true
+        csv.enabled = true
+    }
+
+    jacoco {
+        toolVersion = "0.8.4"
+    }
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['fileserver/exceptions/**',
+                                        'fileserver/configurations/**',
+                                        'fileserver/constants/**',
+                                        'fileserver/Application.class'])
+        })
+    }
 }
